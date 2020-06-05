@@ -22,10 +22,10 @@ the alphabetical order is used to break ties.
 
 - Sons
 - Brothers
-- Nephews (son of the brother)
+- Nephews (son of the brother or sister)
 - Daughters
 - Sisters
-- Nieces (daughter of the brother)
+- Nieces (daughter of the brother or sister)
 - Any remaining member of the house
 
 ## Queries
