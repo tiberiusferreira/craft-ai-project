@@ -1,10 +1,10 @@
 use serde::Deserialize;
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::cmp::Ordering;
 
-mod visualization;
 mod lineage;
+mod visualization;
 use lineage::{Lineage, ParentChildInfo};
 fn main() {
     let file = std::fs::File::open("got_families.csv").unwrap();
