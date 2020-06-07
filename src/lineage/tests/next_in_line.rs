@@ -3,16 +3,153 @@ use crate::lineage::{
     Sex::{Female, Male},
 };
 
-#[test]
-fn son_takes_position_of_father() {
+/// Creates the following dummy lineage used in testing
+///
+/// The first has a Female of Lineage L1 (F_L1) who is married to a Male
+/// of Lineage L2 (M_L2).
+///
+/// The lines indicate who is child of which couple. The terminology is:
+/// SA_L2 =  Son A of Lineage L2
+/// DA_L2 = Daughter A of Lineage L2
+/// EM_LE2 = External Male of Lineage LE2
+/// EF_LE3 = External Female of Lineage LE3
+/// (EF_LE1 + SA_L2) = Couple formed by EF_LE1 and SA_L2
+///
+///                        (F_L1    +    M_L2)
+///                       /   |       |     \
+///                     /     |       |      \
+///     (EF_LE1 + SA_L2)   SB_L2   DA_L2   (DB_L2    +     EM_LE2)
+///            \      \                      \     \        \     \
+///             \      \                      \     \        \     \
+/// (EF_LE3 + SC_L2) DC_L2                SD_LE2  SE_LE2  DD_LE2  DE_LE2
+///      /    \
+///     /      \
+///   SF_L2   DF_L2
+fn create_lineage() -> Lineage {
     let mut lineage = Lineage::new();
-    let father_name = "Father House";
-    let son_name = "Son House";
-    let parent_child = ParentChildInfo::new(father_name, Male, son_name, Male);
-    lineage.insert(parent_child);
-    assert_eq!(lineage.next_in_line(father_name).unwrap().name, son_name);
-    lineage.kill(son_name);
-    // after son is dead, there should be no successors
-    assert!(lineage.next_in_line(father_name).is_none());
+
+    lineage.insert(ParentChildInfo::new("F L1", Female, "SA L2", Male));
+    lineage.insert(ParentChildInfo::new("F L1", Female, "SB L2", Male));
+    lineage.insert(ParentChildInfo::new("F L1", Female, "DA L2", Female));
+    lineage.insert(ParentChildInfo::new("F L1", Female, "DB L2", Female));
+    lineage.insert(ParentChildInfo::new("M L1", Male, "SA L2", Male));
+    lineage.insert(ParentChildInfo::new("M L1", Male, "SB L2", Male));
+    lineage.insert(ParentChildInfo::new("M L1", Male, "DA L2", Female));
+    lineage.insert(ParentChildInfo::new("M L1", Male, "DB L2", Female));
+
+    lineage.insert(ParentChildInfo::new("EF LE1", Female, "SC L2", Male));
+    lineage.insert(ParentChildInfo::new("EF LE1", Female, "DC L2", Female));
+    lineage.insert(ParentChildInfo::new("SA L2", Male, "SC L2", Male));
+    lineage.insert(ParentChildInfo::new("SA L2", Male, "DC L2", Female));
+
+    lineage.insert(ParentChildInfo::new("DB L2", Female, "SD LE2", Male));
+    lineage.insert(ParentChildInfo::new("DB L2", Female, "SE LE2", Male));
+    lineage.insert(ParentChildInfo::new("DB L2", Female, "DD LE2", Female));
+    lineage.insert(ParentChildInfo::new("DB L2", Female, "DE LE2", Female));
+
+    lineage.insert(ParentChildInfo::new("EM L2", Male, "SD LE2", Male));
+    lineage.insert(ParentChildInfo::new("EM L2", Male, "SE LE2", Male));
+    lineage.insert(ParentChildInfo::new("EM L2", Male, "DD LE2", Female));
+    lineage.insert(ParentChildInfo::new("EM L2", Male, "DE LE2", Female));
+
+    lineage.insert(ParentChildInfo::new("EF LE3", Female, "SF L2", Male));
+    lineage.insert(ParentChildInfo::new("EF LE3", Female, "DF L2", Female));
+
+    lineage.insert(ParentChildInfo::new("SC L2", Male, "SF L2", Male));
+    lineage.insert(ParentChildInfo::new("SC L2", Male, "DF L2", Female));
+
+    lineage
 }
+
+#[test]
+fn son_is_next_in_line() {
+    let mut lin = create_lineage();
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
+    // check we respect alphabetical order
+    assert_eq!(lin.next_in_line("DB L2").unwrap().name, "SD LE2");
+    lin.kill("SD LE2");
+    assert_eq!(lin.next_in_line("DB L2").unwrap().name, "SE LE2");
+}
+
+#[test]
+fn brother_is_after_son() {
+    let mut lin = create_lineage();
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
+    lin.kill("SC L2"); // kill son
+                       // Brother is next in line
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SB L2");
+}
+
+#[test]
+fn nephew_is_after_brother() {
+    let mut lin = create_lineage();
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
+    lin.kill("SC L2"); // kill son
+                       // Brother is next in line
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SB L2");
+    lin.kill("SB L2"); // kill brother
+                       // Nephew (from sister DB_L2) is next in line
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SD LE2");
+    lin.kill("SD LE2");
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SE LE2");
+}
+
+#[test]
+fn daughter_is_after_nephew() {
+    let mut lin = create_lineage();
+    // evaluating SA L2
+    lin.kill("SC L2"); // kill son
+    lin.kill("SB L2"); // kill brother
+    lin.kill("SD LE2"); // kill nephew 1
+    lin.kill("SE LE2"); // kill nephew 2
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DC L2");
+}
+
+#[test]
+fn sister_is_after_daughter() {
+    let mut lin = create_lineage();
+    // evaluating SA L2
+    lin.kill("SC L2"); // kill son
+    lin.kill("SB L2"); // kill brother
+    lin.kill("SD LE2"); // kill nephew 1
+    lin.kill("SE LE2"); // kill nephew 2
+    lin.kill("DC L2"); // kill daughter
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DA L2");
+    lin.kill("DA L2"); // kill first sister
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DB L2");
+}
+
+#[test]
+fn niece_is_after_sister() {
+    let mut lin = create_lineage();
+    // evaluating SA L2
+    lin.kill("SC L2"); // kill son
+    lin.kill("SB L2"); // kill brother
+    lin.kill("SD LE2"); // kill nephew 1
+    lin.kill("SE LE2"); // kill nephew 2
+    lin.kill("DC L2"); // kill daughter
+    lin.kill("DA L2"); // kill first sister
+    lin.kill("DB L2"); // kill second sister
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DD LE2");
+    lin.kill("DD LE2"); // kill first niece
+    assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DE LE2"); // second niece should assume
+}
+
+#[test]
+fn anyone_alive_from_house_after_niece() {
+    let mut lin = create_lineage();
+    // evaluating SA L2
+    lin.kill("SC L2"); // kill son
+    lin.kill("SB L2"); // kill brother
+    lin.kill("SD LE2"); // kill nephew 1
+    lin.kill("SE LE2"); // kill nephew 2
+    lin.kill("DC L2"); // kill daughter
+    lin.kill("DA L2"); // kill first sister
+    lin.kill("DB L2"); // kill second sister
+    lin.kill("DD LE2"); // kill first niece
+    lin.kill("DE LE2"); // kill second niece
+
+
+}
+
 

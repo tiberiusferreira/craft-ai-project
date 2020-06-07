@@ -39,7 +39,6 @@ fn prevents_overwriting_mother() {
     lineage.insert(parent_child2);
 }
 
-
 #[test]
 fn can_get_father_and_son() {
     let mut lineage = Lineage::new();
@@ -96,7 +95,10 @@ fn can_get_brother_and_sister() {
     let mut sister_brothers = lineage.get_brothers(daughter);
     assert_eq!(sister_brothers.len(), 2);
     sister_brothers.sort();
-    assert_eq!(sister_brothers.first().unwrap().name, father_second_son_name);
+    assert_eq!(
+        sister_brothers.first().unwrap().name,
+        father_second_son_name
+    );
     assert_eq!(sister_brothers[1].name, son_name);
 
     // Each brother must have one sister
@@ -121,7 +123,7 @@ fn can_get_brother_and_sister() {
 }
 
 #[test]
-fn can_get_nephew_and_niece(){
+fn can_get_nephew_and_niece() {
     // nephew is the son of ones brother or sister
     let mut lineage = Lineage::new();
     let mother_name = "Mother House";
@@ -147,4 +149,3 @@ fn can_get_nephew_and_niece(){
     assert_eq!(niece.len(), 1);
     assert_eq!(niece.first().unwrap().name, niece_name);
 }
-

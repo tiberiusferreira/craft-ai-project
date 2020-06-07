@@ -72,13 +72,19 @@ impl Lineage {
         if let Some(niece) = sort_and_get_first_alive(self.get_nieces(person)) {
             return Some(niece);
         }
-        for single_person in self.people() {
-            // anyone alive, from the same house and who is not the person looking for successor
-            if single_person.house == person.house && single_person.alive() && &single_person.name != name {
-                return Some(single_person.clone());
-            }
-        }
-        None
+
+        let mut alive_people_from_house: Vec<&Person> = self
+            .people()
+            .iter()
+            .filter(|person| {
+                person.house == person.house
+                    && person.alive()
+                    && &person.name != name
+            })
+            .collect();
+        alive_people_from_house.sort();
+
+        alive_people_from_house.first().cloned().cloned()
     }
 }
 
