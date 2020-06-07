@@ -9,5 +9,8 @@ edition = "2018"
 [dependencies]
 csv = "1.1"
 serde = {version = "1.0.111", features = ["derive"]}
+tokio = { version = "0.2", features = ["macros"] }
+warp = "0.2"
+
 plotters = "0.2.15"
 petgraph = "0.5.1"

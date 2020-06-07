@@ -4,6 +4,7 @@ use serde::Deserialize;
 use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::fmt;
+
 #[cfg(test)]
 mod tests;
 
@@ -203,10 +204,14 @@ impl Lineage {
         &self.people_graph
     }
 
-    pub fn kill(&mut self, person_name: &str) {
+
+    /// Returns true if the person was found and killed, false if the person did not exist
+    pub fn kill(&mut self, person_name: &str) -> bool {
         if let Some(person_idx) = self.people_graph_indexes.get(person_name).cloned() {
             self.people_graph[person_idx].kill();
+            return true;
         }
+        false
     }
 
     pub fn insert(&mut self, parent_child_info: ParentChildInfo) {
