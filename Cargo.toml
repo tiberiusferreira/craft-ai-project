@@ -11,6 +11,5 @@ csv = "1.1"
 serde = {version = "1.0.111", features = ["derive"]}
 tokio = { version = "0.2", features = ["macros"] }
 warp = "0.2"
-
 petgraph = "0.5.1"
 async-std = "1.6.0"

@@ -61,9 +61,7 @@ async fn get_successor(
     let maybe_successor = lineage.read().await.next_in_line(&query.name);
     Ok(match maybe_successor {
         None => warp::reply::with_status("", warp::http::StatusCode::NOT_FOUND).into_response(),
-        Some(successor) => {
-            successor.name().to_string().into_response()
-        }
+        Some(successor) => successor.name().to_string().into_response(),
     })
 }
 
@@ -87,8 +85,12 @@ async fn kill_person(
     Ok(match killed {
         Ok(()) => format!("Killed {} successfully", query.name).into_response(),
         Err(e) => match e {
-            KillError::PersonNotFound => warp::reply::with_status("", warp::http::StatusCode::NOT_FOUND).into_response(),
-            KillError::PersonAlreadyDead => format!("{} was already dead", query.name).into_response(),
+            KillError::PersonNotFound => {
+                warp::reply::with_status("", warp::http::StatusCode::NOT_FOUND).into_response()
+            }
+            KillError::PersonAlreadyDead => {
+                format!("{} was already dead", query.name).into_response()
+            }
         },
     })
 }
