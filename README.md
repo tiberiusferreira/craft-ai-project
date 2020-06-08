@@ -159,7 +159,7 @@ Using `people_graph_indexes` one can obtain a `Person` from a name in O(1) time 
 
 Since getting to the Person struct is O(1), getting the next in line is a matter of checking all relatives in the succession rules until arriving at one alive. Each relative can be check in O(1) using the indices stored in the Person struct.
 
-The worst case scenario is when there is no relative alive and we arrive at the condition:
+The worst case scenario is when we arrive at the condition:
 
 - Any remaining member of the house
 
