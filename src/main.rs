@@ -5,7 +5,7 @@ use crate::lineage::KillError;
 use async_std::sync::{Arc, RwLock};
 use serde::Deserialize;
 use std::convert::Infallible;
-use warp::Filter;
+use warp::{Filter, Reply};
 
 /// Deserializes a CSV file into a Lineage struct.
 ///
@@ -60,8 +60,10 @@ async fn get_successor(
 ) -> Result<impl warp::Reply, Infallible> {
     let maybe_successor = lineage.read().await.next_in_line(&query.name);
     Ok(match maybe_successor {
-        None => "Invalid name".to_string(),
-        Some(successor) => successor.name().to_string(),
+        None => warp::reply::with_status("", warp::http::StatusCode::NOT_FOUND).into_response(),
+        Some(successor) => {
+            successor.name().to_string().into_response()
+        }
     })
 }
 
@@ -83,10 +85,10 @@ async fn kill_person(
 ) -> Result<impl warp::Reply, Infallible> {
     let killed = lineage.write().await.kill(&query.name);
     Ok(match killed {
-        Ok(()) => format!("Killed {} successfully", query.name),
+        Ok(()) => format!("Killed {} successfully", query.name).into_response(),
         Err(e) => match e {
-            KillError::PersonNotFound => format!("{} was not found", query.name),
-            KillError::PersonAlreadyDead => format!("{} was already dead", query.name),
+            KillError::PersonNotFound => warp::reply::with_status("", warp::http::StatusCode::NOT_FOUND).into_response(),
+            KillError::PersonAlreadyDead => format!("{} was already dead", query.name).into_response(),
         },
     })
 }
