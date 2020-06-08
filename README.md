@@ -161,14 +161,34 @@ The worst case scenario is when there is no relative alive and we arrive at the 
 
 To be considered of the same house the only requirement is having the same last name as the person being queried.
 
-So one has to go through everybody in `people_graph` which is O(n) where n = number of people in graph.
+So one has to go through everybody in `people_graph` which is O(n) + sorting(O(n log n) worst case) where n = number of people in graph.
 
 #### Possible Optimization
 
-`Lineage` could be augmented with a field `people_alive_in_house: HashMap<String, Vec<usize>>` storing the indices of people alive on a per house basis, allowing `Any remaining member of the house` to be performed at O(1). However, this complicates the implementation and was not implemented for simplicity's sake.
+`Lineage` could be augmented with a field `people_alive_in_house: HashMap<String, Vec<usize>>` storing the indices of people alive on a per house basis, allowing `Any remaining member of the house` to be performed at O(1) if people indices are stored already sorted. However, this complicates the implementation and was not implemented for simplicity's sake.
 
 
+### Kill person
 
+Killing someone is O(1) since it just sets a flag in the Person struct.
+
+
+## Data persistence
+
+Changes (killing someone) are kept in memory only. This was deliberate to keep the implementation simple. However, it could be persisted to a database such as `Postgresql` with a table storing the status (alive or dead) of each person.
+
+When killing someone, the program would modify the database table and then its own in memory representation. 
+
+If many instances of the program are running in parallel, they could be notified of changes by using Kafka messaging to ensure consistency. 
+
+
+## Http Library Choice and Performance
+
+[Warp](https://github.com/seanmonstar/warp) was chosen as the http library because it compiles on the stable release of Rust, supports async-io, is widely used ([350k downloads](https://crates.io/crates/warp)) and its author is `seanmonstar` a long time Rust contributor and also author of [Hyper](https://github.com/hyperium/hyper).
+
+Warp should allow the application to handle multiple requests in the same thread and also scale linearly with the number of threads provided (by default it runs in a single thread).
+
+Task syncronization on the Lineage struct is performed by using an asyncronous [RwLock](https://docs.rs/async-std/1.6.0/async_std/sync/struct.RwLock.html). It allows multiple tasks to read the same data and ensures consistency on writes. Also, since its asyncronous, if one task blocks (for example, on a write) others can still make progress on the same thread. 
 
 
 
