@@ -1,6 +1,5 @@
 # craft ai Project
 
-
 This project aims to help Westerosi Maesters figure out the lines of successions in the noble families.
 
 They use as input the dataset `got_families.csv` which represents the state of the different houses at the beginning of the books.
@@ -17,6 +16,12 @@ An SVG for easier visualization is provided at https://github.com/tiberiusferrei
 
 ![GoT SVG](./got_families.svg)
 
+
+[Succession rules](#succession-rules)
+[Usage](#usage)
+[Technical decisions](#technical-decisions)
+ 
+ 
 ## Succession rules
 
 Here are the succession rules for the Westeros houses (neither book nor show accurate). 
@@ -103,6 +108,11 @@ POST /kill?name=Kevan%20Lannister
 **Code** `200 OK`
 
 **Body** `Killed Kevan Lannister successfully`
+
+
+## Technical decisions
+
+
 
 
 
