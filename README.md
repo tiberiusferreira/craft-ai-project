@@ -16,10 +16,13 @@ An SVG for easier visualization is provided at https://github.com/tiberiusferrei
 
 ![GoT SVG](./got_families.svg)
 
+# Table of contents
 
-[Succession rules](#succession-rules)
-[Usage](#usage)
-[Technical decisions](#technical-decisions)
+- [Succession rules](#succession-rules)
+
+- [Usage](#usage)
+
+- [Technical decisions](#technical-decisions)
  
  
 ## Succession rules
@@ -111,6 +114,58 @@ POST /kill?name=Kevan%20Lannister
 
 
 ## Technical decisions
+
+## Underlying Data Structure
+
+The family tree is represented using the following structure:
+```Rust
+/// Represents a family lineage, contains the information of who is alive and the relationship
+/// between its members.
+/// `people_graph` contains the information itself and `people_graph_indexes` provides a way
+/// to translate a person's name to its index in `people_graph`
+#[derive(Debug, Default)]
+pub struct Lineage {
+    people_graph: Vec<Person>,
+    people_graph_indexes: HashMap<String, usize>,
+}
+
+/// Represents a person of the family. Fields are private outside super to help avoid the creation of
+/// an invalid person (setting father to an invalid id for example)
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Person {
+    /// Its own id in the graph, useful for linking a standalone (copy) of a Person struct to the
+    /// original struct in the graph
+    pub(super) id: usize,
+    pub(super) name: String,
+    pub(super) house: String,
+    pub(super) sex: Sex,
+    pub(super) alive: bool,
+    pub(super) father: Option<usize>,
+    pub(super) mother: Option<usize>,
+    pub(super) sons: Vec<usize>,
+    pub(super) daughters: Vec<usize>,
+}
+```
+
+Using `people_graph_indexes` one can obtain a `Person` from a name in O(1) time by getting the corresponding people_graph index from the hashmap and accessing it. The Person struct contains the indices of all direct relatives (parents and children).
+
+## Querying Complexity
+
+### Next in Line
+
+Since getting to the Person struct is O(1), getting the next in line is a matter of checking all relatives in the succession rules until arriving at one alive. Each relative can be check in O(1) using the indices stored in the Person struct.
+
+The worst case scenario is when there is no relative alive and we arrive at the condition:
+
+- Any remaining member of the house
+
+To be considered of the same house the only requirement is having the same last name as the person being queried.
+
+So one has to go through everybody in `people_graph` which is O(n) where n = number of people in graph.
+
+#### Possible Optimization
+
+`Lineage` could be augmented with a field `people_alive_in_house: HashMap<String, Vec<usize>>` storing the indices of people alive on a per house basis, allowing `Any remaining member of the house` to be performed at O(1). However, this complicates the implementation and was not implemented for simplicity's sake.
 
 
 
