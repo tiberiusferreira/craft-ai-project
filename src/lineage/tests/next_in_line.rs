@@ -67,7 +67,7 @@ fn son_is_next_in_line() {
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
     // check we respect alphabetical order
     assert_eq!(lin.next_in_line("DB L2").unwrap().name, "SD LE2");
-    lin.kill("SD LE2");
+    lin.kill("SD LE2").unwrap();
     assert_eq!(lin.next_in_line("DB L2").unwrap().name, "SE LE2");
 }
 
@@ -75,8 +75,8 @@ fn son_is_next_in_line() {
 fn brother_is_after_son() {
     let mut lin = create_lineage();
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
-    lin.kill("SC L2"); // kill son
-                       // Brother is next in line
+    lin.kill("SC L2").unwrap(); // kill son
+                                // Brother is next in line
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SB L2");
 }
 
@@ -84,13 +84,13 @@ fn brother_is_after_son() {
 fn nephew_is_after_brother() {
     let mut lin = create_lineage();
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SC L2");
-    lin.kill("SC L2"); // kill son
-                       // Brother is next in line
+    lin.kill("SC L2").unwrap(); // kill son
+                                // Brother is next in line
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SB L2");
-    lin.kill("SB L2"); // kill brother
-                       // Nephew (from sister DB_L2) is next in line
+    lin.kill("SB L2").unwrap(); // kill brother
+                                // Nephew (from sister DB_L2) is next in line
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SD LE2");
-    lin.kill("SD LE2");
+    lin.kill("SD LE2").unwrap();
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "SE LE2");
 }
 
@@ -98,10 +98,10 @@ fn nephew_is_after_brother() {
 fn daughter_is_after_nephew() {
     let mut lin = create_lineage();
     // evaluating SA L2
-    lin.kill("SC L2"); // kill son
-    lin.kill("SB L2"); // kill brother
-    lin.kill("SD LE2"); // kill nephew 1
-    lin.kill("SE LE2"); // kill nephew 2
+    lin.kill("SC L2").unwrap(); // kill son
+    lin.kill("SB L2").unwrap(); // kill brother
+    lin.kill("SD LE2").unwrap(); // kill nephew 1
+    lin.kill("SE LE2").unwrap(); // kill nephew 2
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DC L2");
 }
 
@@ -109,13 +109,13 @@ fn daughter_is_after_nephew() {
 fn sister_is_after_daughter() {
     let mut lin = create_lineage();
     // evaluating SA L2
-    lin.kill("SC L2"); // kill son
-    lin.kill("SB L2"); // kill brother
-    lin.kill("SD LE2"); // kill nephew 1
-    lin.kill("SE LE2"); // kill nephew 2
-    lin.kill("DC L2"); // kill daughter
+    lin.kill("SC L2").unwrap(); // kill son
+    lin.kill("SB L2").unwrap(); // kill brother
+    lin.kill("SD LE2").unwrap(); // kill nephew 1
+    lin.kill("SE LE2").unwrap(); // kill nephew 2
+    lin.kill("DC L2").unwrap(); // kill daughter
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DA L2");
-    lin.kill("DA L2"); // kill first sister
+    lin.kill("DA L2").unwrap(); // kill first sister
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DB L2");
 }
 
@@ -123,15 +123,15 @@ fn sister_is_after_daughter() {
 fn niece_is_after_sister() {
     let mut lin = create_lineage();
     // evaluating SA L2
-    lin.kill("SC L2"); // kill son
-    lin.kill("SB L2"); // kill brother
-    lin.kill("SD LE2"); // kill nephew 1
-    lin.kill("SE LE2"); // kill nephew 2
-    lin.kill("DC L2"); // kill daughter
-    lin.kill("DA L2"); // kill first sister
-    lin.kill("DB L2"); // kill second sister
+    lin.kill("SC L2").unwrap(); // kill son
+    lin.kill("SB L2").unwrap(); // kill brother
+    lin.kill("SD LE2").unwrap(); // kill nephew 1
+    lin.kill("SE LE2").unwrap(); // kill nephew 2
+    lin.kill("DC L2").unwrap(); // kill daughter
+    lin.kill("DA L2").unwrap(); // kill first sister
+    lin.kill("DB L2").unwrap(); // kill second sister
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DD LE2");
-    lin.kill("DD LE2"); // kill first niece
+    lin.kill("DD LE2").unwrap(); // kill first niece
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DE LE2"); // second niece should assume
 }
 
@@ -139,14 +139,14 @@ fn niece_is_after_sister() {
 fn anyone_alive_from_house_after_niece() {
     let mut lin = create_lineage();
     // evaluating SA L2
-    lin.kill("SC L2"); // kill son
-    lin.kill("SB L2"); // kill brother
-    lin.kill("SD LE2"); // kill nephew 1
-    lin.kill("SE LE2"); // kill nephew 2
-    lin.kill("DC L2"); // kill daughter
-    lin.kill("DA L2"); // kill first sister
-    lin.kill("DB L2"); // kill second sister
-    lin.kill("DD LE2"); // kill first niece
-    lin.kill("DE LE2"); // kill second niece
+    lin.kill("SC L2").unwrap(); // kill son
+    lin.kill("SB L2").unwrap(); // kill brother
+    lin.kill("SD LE2").unwrap(); // kill nephew 1
+    lin.kill("SE LE2").unwrap(); // kill nephew 2
+    lin.kill("DC L2").unwrap(); // kill daughter
+    lin.kill("DA L2").unwrap(); // kill first sister
+    lin.kill("DB L2").unwrap(); // kill second sister
+    lin.kill("DD LE2").unwrap(); // kill first niece
+    lin.kill("DE LE2").unwrap(); // kill second niece
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DF L2");
 }

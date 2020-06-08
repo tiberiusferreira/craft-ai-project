@@ -1,17 +1,18 @@
 mod person;
 pub use person::{Person, Sex};
+use petgraph::dot::{Config, Dot};
+use petgraph::graph::NodeIndex;
+use petgraph::Graph;
 use serde::Deserialize;
-use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
-use std::fmt;
 
 #[cfg(test)]
 mod tests;
 
 #[derive(Debug, Clone)]
-pub enum KillError{
+pub enum KillError {
     PersonNotFound,
-    PersonAlreadyDead
+    PersonAlreadyDead,
 }
 
 /// Struct containing a parent child family relationship. It is consumed by Lineage in order to
@@ -56,34 +57,37 @@ impl Lineage {
             input.sort();
             input
                 .iter()
-                .filter(|person| person.alive)
-                .next()
+                .find(|person| person.alive)
                 .map(|person| (*person).to_owned())
         };
-        let person = self.get_from_name(name)?;
-        if let Some(son) = sort_and_get_first_alive(self.get_sons_of(person)) {
+        let queried_person = self.get_from_name(name)?;
+        if let Some(son) = sort_and_get_first_alive(self.get_sons_of(queried_person)) {
             return Some(son);
         }
-        if let Some(brother) = sort_and_get_first_alive(self.get_brothers(person)) {
+        if let Some(brother) = sort_and_get_first_alive(self.get_brothers(queried_person)) {
             return Some(brother);
         }
-        if let Some(nephew) = sort_and_get_first_alive(self.get_nephews(person)) {
+        if let Some(nephew) = sort_and_get_first_alive(self.get_nephews(queried_person)) {
             return Some(nephew);
         }
-        if let Some(daughter) = sort_and_get_first_alive(self.get_daughters_of(person)) {
+        if let Some(daughter) = sort_and_get_first_alive(self.get_daughters_of(queried_person)) {
             return Some(daughter);
         }
-        if let Some(sister) = sort_and_get_first_alive(self.get_sisters(person)) {
+        if let Some(sister) = sort_and_get_first_alive(self.get_sisters(queried_person)) {
             return Some(sister);
         }
-        if let Some(niece) = sort_and_get_first_alive(self.get_nieces(person)) {
+        if let Some(niece) = sort_and_get_first_alive(self.get_nieces(queried_person)) {
             return Some(niece);
         }
 
         let mut alive_people_from_house: Vec<&Person> = self
             .people()
             .iter()
-            .filter(|person| person.house == person.house && person.alive() && &person.name != name)
+            .filter(|each_person| {
+                (each_person.house == queried_person.house)
+                    && each_person.alive()
+                    && (each_person.name != queried_person.name)
+            })
             .collect();
         alive_people_from_house.sort();
 
@@ -166,6 +170,32 @@ impl Lineage {
         }
         nieces
     }
+
+    pub fn to_graphviz(&self) -> String {
+        let people = self.people();
+        let mut deps = Graph::<String, &str>::new();
+        let mut person_index_map: HashMap<usize, NodeIndex> = HashMap::new();
+        for (person_idx, person) in people.iter().enumerate() {
+            let idx = deps.add_node(format!("{} ({:?})", person.name(), person.sex()));
+            person_index_map.insert(person_idx, idx);
+        }
+
+        for (person_idx, person) in people.iter().enumerate() {
+            let person_node = person_index_map.get(&person_idx).unwrap();
+            for child in person.sons_idx() {
+                let son_node = person_index_map.get(&child).unwrap();
+                deps.add_edge(person_node.clone(), son_node.clone(), Default::default());
+            }
+
+            for child in person.daughters_idx() {
+                let son_node = person_index_map.get(&child).unwrap();
+                deps.add_edge(person_node.clone(), son_node.clone(), Default::default());
+            }
+        }
+
+        let graphviz = Dot::with_config(&deps, &[Config::EdgeNoLabel]);
+        graphviz.to_string()
+    }
 }
 
 impl Lineage {
@@ -173,15 +203,12 @@ impl Lineage {
         Self::default()
     }
 
-    fn idx_to_person_vec(&self, idx_vec: &Vec<usize>) -> Vec<&Person> {
-        idx_vec
-            .iter()
-            .map(|idx| &self.people_graph[idx.clone()])
-            .collect()
+    fn idx_to_person_vec(&self, idx_vec: &[usize]) -> Vec<&Person> {
+        idx_vec.iter().map(|idx| &self.people_graph[*idx]).collect()
     }
 
     fn insert_or_get_existing(&mut self, name: &str, sex: Sex) -> usize {
-        return if self.people_graph_indexes.get(name).is_none() {
+        if self.people_graph_indexes.get(name).is_none() {
             // person is not in Lineage yet, insert it in graph
             let index = self.people_graph.len();
             self.people_graph.push(Person::new(name, sex, index));
@@ -189,8 +216,8 @@ impl Lineage {
             self.people_graph_indexes.insert(name.to_string(), index);
             index
         } else {
-            self.people_graph_indexes.get(name).unwrap().clone()
-        };
+            *self.people_graph_indexes.get(name).unwrap()
+        }
     }
 
     pub fn get_from_name(&self, name: &str) -> Option<&Person> {
@@ -209,12 +236,12 @@ impl Lineage {
     /// Returns true if the person was found and killed, false if the person did not exist
     pub fn kill(&mut self, person_name: &str) -> Result<(), KillError> {
         if let Some(person_idx) = self.people_graph_indexes.get(person_name).cloned() {
-            if !self.people_graph[person_idx].alive{
+            if !self.people_graph[person_idx].alive {
                 return Err(KillError::PersonAlreadyDead);
             }
             self.people_graph[person_idx].kill();
-            return Ok(());
-        }else{
+            Ok(())
+        } else {
             Err(KillError::PersonNotFound)
         }
     }

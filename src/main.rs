@@ -1,72 +1,111 @@
 mod lineage;
-mod visualization;
 use lineage::{Lineage, ParentChildInfo};
 
-use crate::lineage::{Person, KillError};
+use crate::lineage::KillError;
+use async_std::sync::{Arc, RwLock};
 use serde::Deserialize;
-use std::sync::{Arc, RwLock};
+use std::convert::Infallible;
 use warp::Filter;
 
-#[tokio::main]
-async fn main() {
-    let file = std::fs::File::open("got_families.csv").unwrap();
+/// Deserializes a CSV file into a Lineage struct.
+///
+/// # Arguments
+///
+/// * `file_path` - A string slice that holds the csv file path
+///
+/// The file should have the following structure
+/// ```
+///     parent_name, parent_sex, child_name, child_sex
+///     Rickard Stark, M, Eddard Stark, M
+///     Rickard Stark, M, Brandon Stark, M
+/// ```
+fn read_lineage_from_file(file_path: &str) -> Lineage {
+    let file =
+        std::fs::File::open(file_path).unwrap_or_else(|_| panic!("Could open file: {}", file_path));
     let mut rdr = csv::ReaderBuilder::new()
-        .trim(csv::Trim::All)
+        .trim(csv::Trim::All) // trim leading and trailing whitespace from fields
         .from_reader(file);
 
     let mut lineage = Lineage::new();
 
     for deserialization_result in rdr.deserialize() {
-        let person_csv: ParentChildInfo = deserialization_result.unwrap();
+        // needs to hint the type here so Serde knows what to try to deserialize to
+        let person_csv: ParentChildInfo = deserialization_result.expect("Invalid CSV entry");
         lineage.insert(person_csv);
     }
+    lineage
+}
 
-    let lineage = Arc::new(RwLock::new(lineage));
+/// Represents the name query parameter in the request
+#[derive(Deserialize)]
+struct NameQueryParam {
+    name: String,
+}
 
-    #[derive(Deserialize)]
-    struct NameQueryParam {
-        name: String,
-    }
+/// GET /successor/{name} => 200 OK with body "{name} successor"
+pub fn get_successor_route(
+    lineage_ref: Arc<RwLock<Lineage>>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::get() // only get requests
+        .and(warp::path!("successor")) // only matching successor path
+        .and(warp::query::<NameQueryParam>()) // only having a name query parameter
+        .and(warp::any().map(move || lineage_ref.clone()))
+        .and_then(get_successor)
+}
 
-    let query_lineage_ref = lineage.clone();
+/// This cant be inline because async closures are unstable for now, needs to be a standalone function
+async fn get_successor(
+    query: NameQueryParam,
+    lineage: Arc<RwLock<Lineage>>,
+) -> Result<impl warp::Reply, Infallible> {
+    let maybe_successor = lineage.read().await.next_in_line(&query.name);
+    Ok(match maybe_successor {
+        None => "Invalid name".to_string(),
+        Some(successor) => successor.name().to_string(),
+    })
+}
 
-    // GET /successor/{name} => 200 OK with body "{name} successor"
-    let successor_api =
-        warp::get()
-            .and(warp::path!("successor"))
-        .and(warp::query::<NameQueryParam>())
-        .map(move |query: NameQueryParam| {
-            let maybe_successor = query_lineage_ref.read().unwrap().next_in_line(&query.name);
-            return match maybe_successor {
-                None => "Invalid name".to_string(),
-                Some(successor) => successor.name().to_string(),
-            };
-        });
+/// POST /kill/{name} => 200 OK with body "Killed {name} successfully"
+pub fn kill_person_route(
+    post_lineage_ref: Arc<RwLock<Lineage>>,
+) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+    warp::post() // only post requests
+        .and(warp::path!("kill")) // only matching kill path
+        .and(warp::query::<NameQueryParam>()) // only having a name query parameter
+        .and(warp::any().map(move || post_lineage_ref.clone()))
+        .and_then(kill_person)
+}
 
-    let kill_lineage_ref = lineage.clone();
+/// This cant be inline because async closures are unstable for now, needs to be a standalone function
+async fn kill_person(
+    query: NameQueryParam,
+    lineage: Arc<RwLock<Lineage>>,
+) -> Result<impl warp::Reply, Infallible> {
+    let killed = lineage.write().await.kill(&query.name);
+    Ok(match killed {
+        Ok(()) => format!("Killed {} successfully", query.name),
+        Err(e) => match e {
+            KillError::PersonNotFound => format!("{} was not found", query.name),
+            KillError::PersonAlreadyDead => format!("{} was already dead", query.name),
+        },
+    })
+}
 
-    // POST /kill/{name} => 200 OK with body "Killed {name} successfully"
-    let kill_api = warp::post()
-        .and(warp::path!("kill"))
-        .and(warp::query::<NameQueryParam>())
-        .map(move |query: NameQueryParam| {
-            let killed = kill_lineage_ref.write().unwrap().kill(&query.name);
-            match killed{
-                Ok(()) => format!("Killed {} successfully", query.name),
-                Err(e) => {
-                    match e{
-                        KillError::PersonNotFound => {
-                            format!("{} was not found", query.name)
-                        },
-                        KillError::PersonAlreadyDead => {
-                            format!("{} was already dead", query.name)
-                        },
-                    }
-                },
-            }
-        });
+#[tokio::main]
+async fn main() {
+    let lineage = read_lineage_from_file("got_families.csv");
 
-    warp::serve(successor_api.or(kill_api))
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    // To synchronize reads and writes to the lineage between tasks and threads
+    let lineage_shared = Arc::new(RwLock::new(lineage));
+
+    // each route needs a handle to the lineage in order to query or modify it
+    let get_successor_lineage_ref = lineage_shared.clone();
+    let kill_person_lineage_ref = lineage_shared.clone();
+
+    let routes = get_successor_route(get_successor_lineage_ref)
+        .or(kill_person_route(kill_person_lineage_ref));
+
+    // warp runs in a single thread by default, but can be made to run in as many as needed
+    // https://github.com/seanmonstar/warp/issues/557#issuecomment-622323015
+    warp::serve(routes).run(([127, 0, 0, 1], 3030)).await;
 }

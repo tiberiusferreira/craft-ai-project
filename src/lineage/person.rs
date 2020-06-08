@@ -48,7 +48,7 @@ impl Person {
             split_names.len() >= 2,
             format!("Person must have at least first and house name {}", name)
         );
-        let house = split_names.last().unwrap().to_string();
+        let house = (*split_names.last().unwrap()).to_string();
         Person {
             id,
             name: name.to_string(),
@@ -93,10 +93,10 @@ impl Person {
     }
 
     pub fn father_idx(&self) -> Option<usize> {
-        self.father.clone()
+        self.father
     }
 
     pub fn mother_idx(&self) -> Option<usize> {
-        self.mother.clone()
+        self.mother
     }
 }
