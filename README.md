@@ -48,17 +48,21 @@ A webserver should be started at 127.0.0.1:3030 with two endpoints:
 
 **Method** : `GET`
 
-#### Success Response
+### Success Response
 
 **Code** : `200 OK`
 
 **Body** : Successors name (String)
 
-#### Error Responses
+
+
+### Error Responses
 
 On person not found
 
 **Code** : `404 NOT_FOUND`
+
+
 
 **Example**
 
@@ -79,13 +83,13 @@ GET /successor?name=Tytos%20Lannister
 
 **Method** : `POST`
 
-#### Success Response
+### Success Response
 
 **Code** : `200 OK`
 
 **Body** : Killed {name} successfully or {name} was already dead
 
-#### Error Responses
+### Error Responses
 
 On person not found
 
