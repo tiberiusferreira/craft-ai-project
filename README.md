@@ -23,7 +23,11 @@ An SVG for easier visualization is provided at https://github.com/tiberiusferrei
 - [Usage](#usage)
 
 - [Technical decisions](#technical-decisions)
- 
+- - [Underlying Data Structure](#underlying-data-structure)
+- - [Request Complexity](#request-complexity)
+- - [Data persistence](#data-persistence)
+- - [Http Library Choice and Scalability](#http-library-choice-and-scalability)
+- - [Tests](#tests)
  
 ## Succession rules
 
@@ -149,7 +153,7 @@ pub struct Person {
 
 Using `people_graph_indexes` one can obtain a `Person` from a name in O(1) time by getting the corresponding people_graph index from the hashmap and accessing it. The Person struct contains the indices of all direct relatives (parents and children).
 
-## Querying Complexity
+## Request Complexity
 
 ### Next in Line
 
