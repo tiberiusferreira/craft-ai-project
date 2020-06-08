@@ -8,6 +8,12 @@ use std::fmt;
 #[cfg(test)]
 mod tests;
 
+#[derive(Debug, Clone)]
+pub enum KillError{
+    PersonNotFound,
+    PersonAlreadyDead
+}
+
 /// Struct containing a parent child family relationship. It is consumed by Lineage in order to
 /// construct its family graph
 #[derive(Debug, Deserialize)]
@@ -77,11 +83,7 @@ impl Lineage {
         let mut alive_people_from_house: Vec<&Person> = self
             .people()
             .iter()
-            .filter(|person| {
-                person.house == person.house
-                    && person.alive()
-                    && &person.name != name
-            })
+            .filter(|person| person.house == person.house && person.alive() && &person.name != name)
             .collect();
         alive_people_from_house.sort();
 
@@ -204,14 +206,17 @@ impl Lineage {
         &self.people_graph
     }
 
-
     /// Returns true if the person was found and killed, false if the person did not exist
-    pub fn kill(&mut self, person_name: &str) -> bool {
+    pub fn kill(&mut self, person_name: &str) -> Result<(), KillError> {
         if let Some(person_idx) = self.people_graph_indexes.get(person_name).cloned() {
+            if !self.people_graph[person_idx].alive{
+                return Err(KillError::PersonAlreadyDead);
+            }
             self.people_graph[person_idx].kill();
-            return true;
+            return Ok(());
+        }else{
+            Err(KillError::PersonNotFound)
         }
-        false
     }
 
     pub fn insert(&mut self, parent_child_info: ParentChildInfo) {

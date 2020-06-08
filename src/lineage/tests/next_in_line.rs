@@ -150,5 +150,3 @@ fn anyone_alive_from_house_after_niece() {
     lin.kill("DE LE2"); // kill second niece
     assert_eq!(lin.next_in_line("SA L2").unwrap().name, "DF L2");
 }
-
-
