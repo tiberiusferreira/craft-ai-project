@@ -87,7 +87,7 @@ GET /successor?name=Tytos%20Lannister
 
 #### Error Responses
 
-- On person not found
+On person not found
 
 **Code** : `404 NOT_FOUND`
 
