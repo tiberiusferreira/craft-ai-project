@@ -182,13 +182,21 @@ When killing someone, the program would modify the database table and then its o
 If many instances of the program are running in parallel, they could be notified of changes by using Kafka messaging to ensure consistency. 
 
 
-## Http Library Choice and Performance
+## Http Library Choice and Scalability
 
 [Warp](https://github.com/seanmonstar/warp) was chosen as the http library because it compiles on the stable release of Rust, supports async-io, is widely used ([350k downloads](https://crates.io/crates/warp)) and its author is `seanmonstar` a long time Rust contributor and also author of [Hyper](https://github.com/hyperium/hyper).
 
 Warp should allow the application to handle multiple requests in the same thread and also scale linearly with the number of threads provided (by default it runs in a single thread).
 
 Task syncronization on the Lineage struct is performed by using an asyncronous [RwLock](https://docs.rs/async-std/1.6.0/async_std/sync/struct.RwLock.html). It allows multiple tasks to read the same data and ensures consistency on writes. Also, since its asyncronous, if one task blocks (for example, on a write) others can still make progress on the same thread. 
+
+If neither performance nor usage of the stable release of Rust were priorities, [Rocket](https://rocket.rs/) could have been used for an arguably easier development experience, specially since it will [compile on stable](https://github.com/SergioBenitez/Rocket/issues/19) on the 16th of July 
+
+## Tests
+
+The directory `tests` inside the lineage module provides tests for both the internal family member query APIs and the external next_in_line API to ensure correctness.
+
+The tests can be run by running at the root folder `cargo test`.
 
 
 
